@@ -1,0 +1,2 @@
+TIME = 60
+TIMEMAX = 7200
