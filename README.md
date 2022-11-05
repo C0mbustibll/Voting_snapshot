@@ -28,3 +28,11 @@ username:password@ip:port
 ## key.txt
 
 Вставлеяете свои приватные ключи
+
+---------------------------------------------------------------------
+
+Если появляется ошибка: (TypeError: Object of type bytes is not JSON serializable)
+```
+pip install web3==6.0.0b7 
+pip install eth_account==0.7.0
+```
