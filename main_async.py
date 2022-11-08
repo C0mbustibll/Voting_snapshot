@@ -123,9 +123,12 @@ def signature(address, space, proposal, choice, timestamp, key):
 async def req(key, p):
     tm = random.randint(1,TIMEMAX)
     print(f'{w3.eth.account.from_key(key).address} Сплю -> {tm}')
-
     await asyncio.sleep(tm)
+    global x
+    num_acc = x
     for k,inf in enumerate(proposal_data):
+        if k == 0:
+            x += 1
         SPACE, PROPOSAL, CHOICE = inf.split('@')[0], inf.split('@')[1], inf.split('@')[2]
 
         headers = {'authority': 'hub.snapshot.org',
@@ -145,14 +148,13 @@ async def req(key, p):
             ), proxy=f'http://{p}', headers=headers) as r:
 
                 data = await r.json()
-                global x
+
                 if data.get('id') == None:
                     logger.error(
-                        f"[{x}/{len(keys)}][{k+1}/{len(proposal_data)}] {address}  PROPOSAL -> {PROPOSAL[:10]}  Error -> {data.get('error')}     Error_description -> {data.get('error_description')}")
+                        f"[{num_acc}/{len(keys)}][{k+1}/{len(proposal_data)}] {address}  PROPOSAL -> {PROPOSAL[:10]}  Error -> {data.get('error')}     Error_description -> {data.get('error_description')}")
                 else:
-                    logger.success(f"[{x}/{len(keys)}][{k+1}/{len(proposal_data)}] {address} PROPOSAL -> {PROPOSAL[:10]} Success")
-                if k ==0:
-                    x+=1
+                    logger.success(f"[{num_acc}/{len(keys)}][{k+1}/{len(proposal_data)}] {address} PROPOSAL -> {PROPOSAL[:10]} Success")
+
                 await asyncio.sleep(random.randint(1, TIME))
 
 
