@@ -1,2 +1,4 @@
-TIME = 60
-TIMEMAX = 7200
+TIME = 30
+TIMEMAX = 3000
+
+TIME_ERROR = 10 # sec await after error
