@@ -4,7 +4,7 @@ import time
 from loguru import logger
 import aiohttp
 import asyncio
-from config import TIME,TIMEMAX
+from config import TIME,TIMEMAX,TIME_ERROR
 import random
 
 logger.add(f'log.log')
@@ -48,6 +48,10 @@ def forma(address, signature, space, proposal, choice, timestamp):
                     {
                         "name": "app",
                         "type": "string"
+                    },
+                    {
+                        "name": "metadata",
+                        "type": "string"
                     }
                 ]
             },
@@ -59,6 +63,7 @@ def forma(address, signature, space, proposal, choice, timestamp):
                 "reason": "",
                 "from": address,
                 "timestamp": timestamp,
+                'metadata': "{}"
             }
         }
     }
@@ -100,6 +105,10 @@ def signature(address, space, proposal, choice, timestamp, key):
                 {
                     "name": "app",
                     "type": "string"
+                },
+                {
+                    "name": "metadata",
+                    "type": "string"
                 }
             ],
             'EIP712Domain': [{'name': 'name', 'type': 'string'}, {'name': 'version', 'type': 'string'}]
@@ -112,7 +121,8 @@ def signature(address, space, proposal, choice, timestamp, key):
             "app": "snapshot",
             "reason": "",
             "from": address,
-            "timestamp": timestamp
+            "timestamp": timestamp,
+            'metadata': "{}"
         }
     }
 
@@ -138,24 +148,45 @@ async def req(key, p):
                    'origin': 'https://snapshot.org', 'sec-fetch-site': 'same-site', 'sec-fetch-mode': 'cors',
                    'sec-fetch-dest': 'empty', 'referer': 'https://snapshot.org/', 'accept-language': 'ru', }
 
-        timestamp = int(time.time())
-        address = w3.eth.account.from_key(key).address
-        async with aiohttp.ClientSession(headers=headers) as ses:
-            async with ses.post('https://hub.snapshot.org/api/msg', json=forma(
-                    address,
-                    signature(address, SPACE, PROPOSAL, int(CHOICE), timestamp, key),
-                    SPACE, PROPOSAL, int(CHOICE), timestamp
-            ), proxy=f'http://{p}', headers=headers) as r:
+        STATUS=True
+        while STATUS:
 
-                data = await r.json()
+            timestamp = int(time.time())
+            address = w3.eth.account.from_key(key).address
 
-                if data.get('id') == None:
-                    logger.error(
-                        f"[{num_acc}/{len(keys)}][{k+1}/{len(proposal_data)}] {address}  PROPOSAL -> {PROPOSAL[:10]}  Error -> {data.get('error')}     Error_description -> {data.get('error_description')}")
-                else:
-                    logger.success(f"[{num_acc}/{len(keys)}][{k+1}/{len(proposal_data)}] {address} PROPOSAL -> {PROPOSAL[:10]} Success")
+            async with aiohttp.ClientSession(headers=headers) as ses:
+                async with ses.post('https://hub.snapshot.org/api/msg', json=forma(
+                        address,
+                        signature(address, SPACE, PROPOSAL, int(CHOICE), timestamp, key),
+                        SPACE, PROPOSAL, int(CHOICE), timestamp
+                ), proxy=f'http://{p}', headers=headers) as r:
+                    try:
 
-                await asyncio.sleep(random.randint(1, TIME))
+                        data = await r.json()
+
+                        if data.get('id') == None:
+                            if data.get('error_description') == 'no voting power':
+                                logger.info(
+                                    f"[{num_acc}/{len(keys)}][{k + 1}/{len(proposal_data)}] {address} PROPOSAL -> {PROPOSAL[:10]} Error-> {data.get('error_description')}")
+                                STATUS=False
+
+                            elif data.get('error_description') == 'failed to check voting power':
+                                await asyncio.sleep(TIME_ERROR)
+
+                            else:
+                                logger.error(
+                                    f"[{num_acc}/{len(keys)}][{k + 1}/{len(proposal_data)}] {address} PROPOSAL -> {PROPOSAL[:10]} Error-> {data.get('error_description')}")
+                                await asyncio.sleep(TIME_ERROR)
+
+                        else:
+                            logger.success(f"[{num_acc}/{len(keys)}][{k+1}/{len(proposal_data)}] {address} PROPOSAL -> {PROPOSAL[:10]} Success")
+                            STATUS=False
+
+                    except Exception as e:
+                        # logger.error(f'{address} -> failed check json')
+                        await asyncio.sleep(TIME_ERROR)
+
+        await asyncio.sleep(random.randint(1, TIME))
 
 
 with open('key.txt', 'r') as f:
@@ -173,3 +204,4 @@ async def main():
 
 if __name__ == '__main__':
     asyncio.run(main())
+
