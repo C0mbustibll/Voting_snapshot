@@ -35,7 +35,7 @@ space@proposal@[choise,choise]
 username:password@ip:port
 username:password@ip:port
 ```
-Если используете один прокси на все акк продублируйте его что бы прокси было >= key
+Если используете один прокси на все акк ,продублируйте его ,что бы прокси было >= key
 
 ## key.txt
 
