@@ -4,13 +4,22 @@ import time
 from loguru import logger
 import aiohttp
 import asyncio
-from config import TIME,TIMEMAX,TIME_ERROR
+from config import TIME, TIMEMAX, TIME_ERROR
 import random
+import ast
 
 logger.add(f'log.log')
 
 
-def forma(address, signature, space, proposal, choice, timestamp):
+def validation_type(type, choise):
+    if type == 'uint32':
+        return int(choise)
+    choise = [int(ch) for ch in choise]
+    return choise
+
+
+# region form
+def forma(address, signature, space, proposal, choice, timestamp, type_choice="uint32"):
     forma = {
         "address": address,
         "sig": signature,
@@ -20,11 +29,10 @@ def forma(address, signature, space, proposal, choice, timestamp):
                 "version": "0.1.4"
             },
             "types": {
-                "Vote": [
-                    {
-                        "name": "from",
-                        "type": "address"
-                    },
+                "Vote": [{
+                    "name": "from",
+                    "type": "address"
+                },
                     {
                         "name": "space",
                         "type": "string"
@@ -39,7 +47,7 @@ def forma(address, signature, space, proposal, choice, timestamp):
                     },
                     {
                         "name": "choice",
-                        "type": "uint32"
+                        "type": type_choice
                     },
                     {
                         "name": "reason",
@@ -58,7 +66,7 @@ def forma(address, signature, space, proposal, choice, timestamp):
             "message": {
                 "space": space,
                 "proposal": proposal,
-                "choice": choice,
+                "choice": validation_type(type_choice,choice),
                 "app": "snapshot",
                 "reason": "",
                 "from": address,
@@ -70,7 +78,10 @@ def forma(address, signature, space, proposal, choice, timestamp):
     return forma
 
 
-def signature(address, space, proposal, choice, timestamp, key):
+# endregion
+
+# region signature
+def signature(address, space, proposal, choice, timestamp, key, type_choice="uint32"):
     sig_signature = {
         "domain": {
             "name": "snapshot",
@@ -96,7 +107,7 @@ def signature(address, space, proposal, choice, timestamp, key):
                 },
                 {
                     "name": "choice",
-                    "type": "uint32"
+                    "type": type_choice
                 },
                 {
                     "name": "reason",
@@ -117,7 +128,7 @@ def signature(address, space, proposal, choice, timestamp, key):
         "message": {
             "space": space,
             "proposal": w3.toBytes(hexstr=proposal),
-            "choice": choice,
+            "choice": validation_type(type_choice,choice),
             "app": "snapshot",
             "reason": "",
             "from": address,
@@ -130,25 +141,32 @@ def signature(address, space, proposal, choice, timestamp, key):
     return signature
 
 
+# endregion
+
 async def req(key, p):
-    tm = random.randint(1,TIMEMAX)
-    print(f'{w3.eth.account.from_key(key).address} Сплю -> {tm}')
+    tm = random.randint(1, TIMEMAX)
+
     await asyncio.sleep(tm)
     global x
     num_acc = x
-    for k,inf in enumerate(proposal_data):
+
+    random.shuffle(proposal_data)
+
+    for k, inf in enumerate(proposal_data):
         if k == 0:
             x += 1
         SPACE, PROPOSAL, CHOICE = inf.split('@')[0], inf.split('@')[1], inf.split('@')[2]
 
-        headers = {'authority': 'hub.snapshot.org',
-                   'sec-ch-ua': '"Google Chrome";v="101", "Chromium";v="101", ";Not A Brand";v="99"',
-                   'accept': 'application/json', 'sec-ch-ua-mobile': '?0',
-                   'user-agent': 'Mozilla/5.0 (Windows NT 6.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.54 Safari/537.36',
-                   'origin': 'https://snapshot.org', 'sec-fetch-site': 'same-site', 'sec-fetch-mode': 'cors',
-                   'sec-fetch-dest': 'empty', 'referer': 'https://snapshot.org/', 'accept-language': 'ru', }
+        type_choise = "uint32"
 
-        STATUS=True
+        if '[' in CHOICE:
+            CHOICE = ast.literal_eval(CHOICE)
+            type_choise = "uint32[]"
+
+        headers = {'accept': 'application/json',
+                   'user-agent': 'Mozilla/5.0 (Windows NT 6.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.54 Safari/537.36'}
+
+        STATUS = True
         while STATUS:
 
             timestamp = int(time.time())
@@ -157,8 +175,8 @@ async def req(key, p):
             async with aiohttp.ClientSession(headers=headers) as ses:
                 async with ses.post('https://hub.snapshot.org/api/msg', json=forma(
                         address,
-                        signature(address, SPACE, PROPOSAL, int(CHOICE), timestamp, key),
-                        SPACE, PROPOSAL, int(CHOICE), timestamp
+                        signature(address, SPACE, PROPOSAL, CHOICE, timestamp, key, type_choise),
+                        SPACE, PROPOSAL, CHOICE, timestamp, type_choise
                 ), proxy=f'http://{p}', headers=headers) as r:
                     try:
 
@@ -168,7 +186,7 @@ async def req(key, p):
                             if data.get('error_description') == 'no voting power':
                                 logger.info(
                                     f"[{num_acc}/{len(keys)}][{k + 1}/{len(proposal_data)}] {address} PROPOSAL -> {PROPOSAL[:10]} Error-> {data.get('error_description')}")
-                                STATUS=False
+                                STATUS = False
 
                             elif data.get('error_description') == 'failed to check voting power':
                                 await asyncio.sleep(TIME_ERROR)
@@ -179,8 +197,9 @@ async def req(key, p):
                                 await asyncio.sleep(TIME_ERROR)
 
                         else:
-                            logger.success(f"[{num_acc}/{len(keys)}][{k+1}/{len(proposal_data)}] {address} PROPOSAL -> {PROPOSAL[:10]} Success")
-                            STATUS=False
+                            logger.success(
+                                f"[{num_acc}/{len(keys)}][{k + 1}/{len(proposal_data)}] {address} PROPOSAL -> {PROPOSAL[:10]} Success")
+                            STATUS = False
 
                     except Exception as e:
                         # logger.error(f'{address} -> failed check json')
@@ -198,10 +217,10 @@ with open('data.txt', 'r') as f:
 
 x = 1
 
+
 async def main():
     await asyncio.gather(*[req(k, prox[v]) for v, k in enumerate(keys)])
 
 
 if __name__ == '__main__':
     asyncio.run(main())
-
