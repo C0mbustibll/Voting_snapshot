@@ -7,6 +7,7 @@ import asyncio
 from config import TIME, TIMEMAX, TIME_ERROR
 import random
 import ast
+import json
 
 logger.add(f'log.log')
 
@@ -14,6 +15,8 @@ logger.add(f'log.log')
 def validation_type(type, choise):
     if type == 'uint32':
         return int(choise)
+    if type == 'string':
+        return json.dumps(dict(choise))
     choise = [int(ch) for ch in choise]
     return choise
 
@@ -162,6 +165,9 @@ async def req(key, p):
         if '[' in CHOICE:
             CHOICE = ast.literal_eval(CHOICE)
             type_choise = "uint32[]"
+        if '{' in CHOICE:
+            CHOICE = ast.literal_eval(CHOICE)
+            type_choise = "string"
 
         headers = {'accept': 'application/json',
                    'user-agent': 'Mozilla/5.0 (Windows NT 6.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.54 Safari/537.36'}
@@ -173,7 +179,7 @@ async def req(key, p):
             address = w3.eth.account.from_key(key).address
 
             async with aiohttp.ClientSession(headers=headers) as ses:
-                async with ses.post('https://hub.snapshot.org/api/msg', json=forma(
+                async with ses.post('https://seq.snapshot.org/', json=forma(
                         address,
                         signature(address, SPACE, PROPOSAL, CHOICE, timestamp, key, type_choise),
                         SPACE, PROPOSAL, CHOICE, timestamp, type_choise
