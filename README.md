@@ -26,7 +26,11 @@ space@proposal@[choise]
 space@proposal@[choise,choise]
 ```
 
-
+![image](https://user-images.githubusercontent.com/117441696/227935482-243d8ec8-0d9a-4bd7-8080-982d5868e27a.png)
+```
+space@proposal@{"1":1}
+space@proposal@{"CHOISE":NUM_VOTE}
+```
 
 ## proxy.txt
 
