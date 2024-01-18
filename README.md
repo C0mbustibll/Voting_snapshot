@@ -7,6 +7,7 @@
 TIME - Время между запросами 1 адреса
 TIMEMAX - рандомезирует время от 1 до TIMEMAX, что бы добавить чутка рандома между разными аккаунтами 
 TIME_ERROR - время ожидания после ошибки
+PROXY - True/False в зависимости хотите ли использовать прокси
 ```
 
 ## data.txt
@@ -15,6 +16,13 @@ TIME_ERROR - время ожидания после ошибки
 ```
 space@proposal@choise
 space@proposal@choise
+
+Пример как должен выглядеть proposal в файле data.txt для LayerZero по ссылке:
+
+Ссылка - https://snapshot.org/#/stgdao.eth/proposal/0x747abdac9511413bf6bd752a9a5bbec93d07c68f57966429142eb26a92c09720
+                                                 ||
+                                                 \/
+В файл data.txt - stgdao.eth@0x747abdac9511413bf6bd752a9a5bbec93d07c68f57966429142eb26a92c09720@1
 ```
 ![image](https://user-images.githubusercontent.com/117441696/212177066-ca0c2746-34d5-44ed-9ede-1efb85480e03.png)
 
