@@ -46,6 +46,7 @@ space@proposal@{"CHOISE":NUM_VOTE}
 ```
 username:password@ip:port
 username:password@ip:port
+Либо файл должен быть пустым если не хотите использовать прокси и значение переменной PROXY = False
 ```
 Если используете один прокси на все акк ,продублируйте его ,что бы прокси было >= key
 
